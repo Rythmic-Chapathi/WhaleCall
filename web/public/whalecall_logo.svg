@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="WhaleCall whale-tail logo">
+  <circle cx="32" cy="32" r="32" fill="#0F2537"/>
+  <path d="M14 40c4-10 12-16 18-14 3 1 3 4 0 5-6 2-9 6-10 11-1-3-4-3-6 0-1-1-2-1-2-2z" fill="#F4C28F"/>
+  <path d="M50 40c-4-10-12-16-18-14-3 1-3 4 0 5 6 2 9 6 10 11 1-3 4-3 6 0 1-1 2-1 2-2z" fill="#F4C28F"/>
+  <path d="M20 46c4 4 8 6 12 6s8-2 12-6c-4 6-8 9-12 9s-8-3-12-9z" fill="#E2C364"/>
+</svg>
