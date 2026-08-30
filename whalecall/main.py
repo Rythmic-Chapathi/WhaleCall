@@ -64,15 +64,16 @@ def require_user(wc_session: Optional[str] = Cookie(default=None)) -> User:
 @app.get("/")
 def landing(request: Request, wc_session: Optional[str] = Cookie(default=None)):
     user = data.get_user_from_session(wc_session)
-    return templates.TemplateResponse("landing.html", {"request": request, "user": user})
+    return templates.TemplateResponse(request, "landing.html", {"user": user})
 
 
 @app.get("/sos")
 def sos_page(request: Request, wc_session: Optional[str] = Cookie(default=None)):
     user = data.get_user_from_session(wc_session)
     return templates.TemplateResponse(
+        request,
         "sos.html",
-        {"request": request, "user": user, "islands": [i.model_dump() for i in data.ISLANDS],
+        {"user": user, "islands": [i.model_dump() for i in data.ISLANDS],
          "default_origin": user.home_island_id if user else data.DEFAULT_HOME_ISLAND_ID},
     )
 
@@ -83,8 +84,9 @@ def home_page(request: Request, wc_session: Optional[str] = Cookie(default=None)
     if not user:
         return RedirectResponse(url="/")
     return templates.TemplateResponse(
+        request,
         "home.html",
-        {"request": request, "user": user, "islands": [i.model_dump() for i in data.ISLANDS]},
+        {"user": user, "islands": [i.model_dump() for i in data.ISLANDS]},
     )
 
 
@@ -96,8 +98,9 @@ def rides_page(request: Request, wc_session: Optional[str] = Cookie(default=None
     my_rides = [r for r in data.RIDE_REQUESTS.values() if r.user_id == user.id]
     my_rides.sort(key=lambda r: r.created_at, reverse=True)
     return templates.TemplateResponse(
+        request,
         "rides.html",
-        {"request": request, "user": user, "rides": my_rides, "islands_by_id": data.ISLANDS_BY_ID,
+        {"user": user, "rides": my_rides, "islands_by_id": data.ISLANDS_BY_ID,
          "boats_by_id": data.BOATS_BY_ID},
     )
 
@@ -105,7 +108,7 @@ def rides_page(request: Request, wc_session: Optional[str] = Cookie(default=None
 @app.get("/dispatcher")
 def dispatcher_page(request: Request, wc_session: Optional[str] = Cookie(default=None)):
     user = data.get_user_from_session(wc_session)
-    return templates.TemplateResponse("dispatcher.html", {"request": request, "user": user})
+    return templates.TemplateResponse(request, "dispatcher.html", {"user": user})
 
 
 # ---------------------------------------------------------------------------

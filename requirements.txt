@@ -1,8 +1,12 @@
-fastapi==0.115.0
-uvicorn[standard]==0.30.6
-jinja2==3.1.4
-pydantic==2.9.2
-python-multipart==0.0.9
-websockets==13.1
-pytest==8.3.3
-httpx==0.27.2
+# Version floors, not exact pins: lets pip pick whatever prebuilt wheel
+# matches your Python version (pinning pydantic 2.9.x breaks on newer
+# Pythons like 3.13/3.14 on Windows, where that old pydantic-core has no
+# wheel and pip falls back to compiling Rust from source).
+fastapi>=0.115
+uvicorn[standard]>=0.30
+jinja2>=3.1
+pydantic>=2.10
+python-multipart>=0.0.9
+websockets>=13
+pytest>=8.3
+httpx>=0.27
