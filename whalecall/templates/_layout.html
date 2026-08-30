@@ -20,12 +20,14 @@
     <nav class="topbar-links" aria-label="Main">
       {% block nav %}
       {% if user %}
-        <a class="nav-link" href="/home">Island Map</a>
+        <a class="nav-link" href="/home">Ride</a>
+        <a class="nav-link" href="/fleet">Fleet</a>
         <a class="nav-link" href="/rides">My Rides</a>
-        <a class="nav-link" href="/dispatcher">Dispatcher</a>
+        <a class="nav-link" href="/dispatcher">Triage</a>
         <span class="nav-greeting">Hi, {{ user.name }}</span>
       {% else %}
-        <a class="nav-link" href="/dispatcher">Dispatcher</a>
+        <a class="nav-link" href="/fleet">Fleet</a>
+        <a class="nav-link" href="/dispatcher">Triage</a>
       {% endif %}
       <a class="nav-sos-btn" href="/sos" aria-label="Send an SOS -- no login needed">
         <span aria-hidden="true">🚨</span>SOS
@@ -36,7 +38,7 @@
 
   {% block hero %}{% endblock %}
 
-  <div class="page">
+  <div class="page {% block page_class %}{% endblock %}">
     {% block content %}{% endblock %}
   </div>
 
@@ -51,7 +53,8 @@
       <nav aria-label="Footer">
         <a href="/sos">Emergency SOS</a>
         <a href="/home">Plan a Ride</a>
-        <a href="/dispatcher">Dispatcher</a>
+        <a href="/fleet">Fleet</a>
+        <a href="/dispatcher">Triage</a>
         <a href="/rides">My Rides</a>
       </nav>
     </div>

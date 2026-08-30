@@ -1,0 +1,64 @@
+{% extends "_layout.html" %}
+{% block title %}Fleet -- WhaleCall{% endblock %}
+{% block content %}
+<h1 style="display:flex; align-items:center; gap:10px;">
+  <span aria-hidden="true" style="background:var(--gold); border:2px solid var(--navy); border-radius:50%; padding:6px 9px; font-size:1.2rem;">📡</span>
+  Fleet Status
+</h1>
+<p>Every Pod Guide in the archipelago, live -- the same real-time positions the dispatcher map and your ride tracking use.</p>
+
+<div id="fleet-list">
+  {% for boat in boats %}
+  <div class="fleet-card" data-boat-id="{{ boat.id }}">
+    <div>
+      <strong>{{ boat.captain_name }}</strong>
+      <div class="meta">Capacity {{ boat.capacity }} &middot; <span class="vouch">vouched by {{ boat.vouch_count }} neighbors</span></div>
+      <div class="meta" data-field="status">
+        <span class="fleet-status-dot {{ 'moving' if boat.state.moving else 'available' }}"></span>
+        {% if boat.state.moving %}En route to {{ boat.destination_name }}{% else %}Docked at {{ boat.current_island_name }}{% endif %}
+      </div>
+    </div>
+    <span class="tag {{ 'tag-standard' if boat.state.moving else 'tag-completed' }}" data-field="tag">
+      {{ "En Route" if boat.state.moving else "Available" }}
+    </span>
+  </div>
+  {% endfor %}
+</div>
+
+<nav class="map-bottom-nav" aria-label="Mobile">
+  <a href="/dispatcher"><span class="emoji" aria-hidden="true">🚨</span>Triage</a>
+  <a href="/home"><span class="emoji" aria-hidden="true">🚤</span>Ride</a>
+  <a href="/fleet" class="active"><span class="emoji" aria-hidden="true">📡</span>Fleet</a>
+  <a href="/rides"><span class="emoji" aria-hidden="true">🕓</span>Rides</a>
+</nav>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const ISLANDS = {{ islands | tojson }};
+
+  async function refreshFleet() {
+    try {
+      const fleet = await getJSON("/api/fleet");
+      fleet.forEach((entry) => {
+        const card = document.querySelector(`.fleet-card[data-boat-id="${entry.boat.id}"]`);
+        if (!card) return;
+        const statusEl = card.querySelector('[data-field="status"]');
+        const tagEl = card.querySelector('[data-field="tag"]');
+        if (entry.state.moving) {
+          statusEl.innerHTML = `<span class="fleet-status-dot moving"></span>En route to ${entry.destination_name || "?"}`;
+          tagEl.textContent = "En Route";
+          tagEl.className = "tag tag-standard";
+        } else {
+          statusEl.innerHTML = `<span class="fleet-status-dot available"></span>Docked at ${entry.current_island_name}`;
+          tagEl.textContent = "Available";
+          tagEl.className = "tag tag-completed";
+        }
+      });
+    } catch (err) {
+      // Non-fatal -- the server-rendered snapshot stays visible.
+    }
+  }
+  setInterval(refreshFleet, 3000);
+</script>
+{% endblock %}

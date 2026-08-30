@@ -101,6 +101,34 @@ def nearby_boats(destination_island_id: str, origin_island_id: str) -> list[dict
     return results
 
 
+def boat_live_state(boat_id: str, now: datetime) -> dict:
+    """A live snapshot of one boat for the fleet/map views: its current
+    (possibly mid-trip, interpolated) position, and the island it's
+    headed to if it's on an active job. Real data, not a mock -- reuses
+    the same Tracking objects the rider-facing live map polls."""
+    boat = BOATS_BY_ID[boat_id]
+    for tracking in TRACKING.values():
+        if tracking.boat_id == boat_id and not tracking.released:
+            pos = tracking.position(now)
+            return {
+                "boat_id": boat_id,
+                "x_pct": pos["x_pct"],
+                "y_pct": pos["y_pct"],
+                "destination_island_id": tracking.destination_island_id,
+                "phase": pos["phase"],
+                "moving": True,
+            }
+    island = ISLANDS_BY_ID[boat.current_island_id]
+    return {
+        "boat_id": boat_id,
+        "x_pct": island.x_pct,
+        "y_pct": island.y_pct,
+        "destination_island_id": None,
+        "phase": "docked",
+        "moving": False,
+    }
+
+
 def release_boat(boat_id: str) -> None:
     boat = BOATS_BY_ID.get(boat_id)
     if boat:

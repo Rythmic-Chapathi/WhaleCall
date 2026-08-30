@@ -22,6 +22,8 @@
   --outline: #74777D;
   --outline-light: #C3C7CD;
   --white: #FFFFFF;
+  --island-green: #8BC34A; /* island illustration interior */
+  --whale-yellow: #FBC02D; /* map/fleet control accents */
   --radius-card: 14px;
   --radius-pill: 999px;
   --tap-min: 44px;
@@ -196,6 +198,14 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
   padding: 130px 20px 60px;
   max-width: 1100px;
   margin: 0 auto;
+}
+/* Pages that lead with a full-bleed {% block hero %} (which already
+ * clears the fixed navbar itself) don't need the extra top clearance. */
+.page.after-hero { padding-top: 30px; }
+
+@media (max-width: 640px) {
+  /* Leaves room above the fixed mobile bottom nav (Triage/Ride/Fleet/Rides). */
+  .page { padding-bottom: 90px; }
 }
 
 /* ---------------------------------------------------------------- */
@@ -475,16 +485,196 @@ a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible
 .map-wrap svg { width: 100%; height: 100%; display: block; }
 
 .island-marker { cursor: pointer; }
-.island-marker circle.pad { fill: var(--white); stroke: var(--navy); stroke-width: 2; }
-.island-marker.selected circle.pad { stroke: var(--coral); stroke-width: 4; }
-.island-marker text.label { font-size: 3.6px; font-weight: 800; fill: var(--navy); text-anchor: middle; }
+.island-marker .land { fill: var(--sand); stroke: var(--navy); stroke-width: 1.4; }
+.island-marker .land-core { fill: var(--island-green); stroke: var(--navy); stroke-width: 0.6; }
+.island-marker.selected .land { stroke: var(--coral); stroke-width: 2.2; }
+.island-marker text.label {
+  font-size: 3.4px;
+  font-weight: 800;
+  fill: var(--navy);
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: var(--surface-card);
+  stroke-width: 0.6px;
+}
 .island-marker text.icon { font-size: 6px; text-anchor: middle; }
 
 .boat-marker circle { fill: var(--coral); stroke: var(--white); stroke-width: 1.4; }
 .boat-marker text { font-size: 5px; text-anchor: middle; }
+.boat-marker.moving circle:not(.pulse-ring) { fill: var(--teal); }
+.boat-marker.docked circle:not(.pulse-ring) { fill: #2e7d32; }
+.boat-marker.docked .pulse-ring, .boat-marker.moving .pulse-ring { stroke: currentColor; }
+.boat-marker.moving { color: var(--teal); }
+.boat-marker.docked { color: #2e7d32; }
+
+.route-line {
+  stroke: var(--navy);
+  stroke-width: 0.6;
+  stroke-dasharray: 2, 1.6;
+  opacity: 0.75;
+}
 
 .pulse-ring { fill: none; stroke: var(--coral); stroke-width: 1; opacity: 0.7; animation: map-pulse 1.8s ease-out infinite; }
 @keyframes map-pulse { 0% { r: 3; opacity: 0.7; } 100% { r: 10; opacity: 0; } }
+
+/* ---------------------------------------------------------------- */
+/* Full-screen map shell -- shared by the Ride map and the Dispatcher */
+/* fleet/triage view. A fixed-height "app" panel under the pill nav,  */
+/* with floating panels and controls over an ambient water canvas.   */
+/* ---------------------------------------------------------------- */
+
+.map-shell {
+  position: relative;
+  margin-top: 96px;
+  height: calc(100vh - 96px);
+  min-height: 480px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #cdeef0, var(--water));
+}
+@media (max-width: 640px) {
+  .map-shell { height: calc(100vh - 96px - 62px); } /* leave room for bottom nav */
+}
+
+.map-shell-bg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+.map-shell-svg-wrap { position: absolute; inset: 0; }
+.map-shell-svg-wrap svg { width: 100%; height: 100%; display: block; transition: transform 0.2s ease; }
+
+.map-panel {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: min(340px, calc(100% - 40px));
+  max-height: calc(100% - 40px);
+  overflow-y: auto;
+  background: var(--surface-card);
+  border: 2px solid var(--navy);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-md);
+  z-index: 20;
+}
+.map-panel-header {
+  padding: 14px 16px;
+  border-bottom: 2px solid var(--navy);
+  background: var(--sky);
+  border-radius: 12px 12px 0 0;
+}
+.map-panel-header h2 { margin: 0 0 2px; font-size: 1.05rem; }
+.map-panel-header p { margin: 0; font-size: 0.8rem; color: var(--outline); }
+.map-panel-body { padding: 14px 16px; }
+
+.map-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+}
+.zoom-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--surface-card);
+  border: 2px solid var(--navy);
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: var(--shadow-sm);
+}
+.zoom-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 2px solid var(--navy);
+  background: var(--whale-yellow);
+  font-weight: 800;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.zoom-btn:active { transform: translate(1px, 1px); }
+.recenter-btn {
+  background: var(--whale-yellow);
+  color: var(--navy);
+  border: 2px solid var(--navy);
+  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-pill);
+  padding: 10px 18px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.recenter-btn:active { transform: translate(2px, 2px); box-shadow: none; }
+
+.map-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: 90;
+  background: var(--surface-card);
+  border-top: 2px solid var(--navy);
+  justify-content: space-around;
+  align-items: stretch;
+  height: 62px;
+}
+.map-bottom-nav a {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-decoration: none;
+  color: var(--outline);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.map-bottom-nav a.active { background: var(--whale-yellow); color: var(--navy); }
+.map-bottom-nav a .emoji { font-size: 1.2rem; }
+@media (max-width: 640px) {
+  .map-bottom-nav { display: flex; }
+}
+
+/* Alert / fleet-list cards used inside the dispatcher map panel and    */
+/* the standalone /fleet page.                                         */
+.alert-card {
+  border: 2px solid var(--navy);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+  box-shadow: 3px 3px 0 var(--navy);
+}
+.alert-card.sos { background: var(--coral-bg); }
+.alert-card.standard { background: var(--teal-light); }
+.alert-card .alert-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+.alert-card .alert-label { font-weight: 800; font-size: 0.72rem; text-transform: uppercase; }
+.alert-card h3 { margin: 0 0 4px; font-size: 1rem; }
+.alert-card p { margin: 0 0 8px; font-size: 0.85rem; color: var(--outline); }
+
+.fleet-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--radius-card);
+  border: 2px solid var(--navy);
+  background: var(--white);
+  box-shadow: 3px 3px 0 var(--navy);
+  margin-bottom: 12px;
+}
+.fleet-status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+.fleet-status-dot.available { background: #2e7d32; }
+.fleet-status-dot.moving { background: var(--teal); }
 
 /* ---------------------------------------------------------------- */
 /* Search & lists                                                    */

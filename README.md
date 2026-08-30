@@ -94,18 +94,24 @@ whalecall/
   models.py        Pydantic request/response models
   priority.py       Priority scoring + fair queue sort (the core logic)
   data.py           In-memory seed data: islands, boats, users, sessions,
-                     live-tracking state
+                     live-tracking state, live fleet positions
   static/
-    app.js          Map rendering, search, forms, WebSocket handling
-    style.css       Tropical theme (ocean blue / teal / coral / sand)
+    app.js          Map rendering (stylized island shapes, route lines,
+                     zoom), search, forms, WebSocket handling, the shared
+                     ambient water-shader background
+    style.css       Playful illustrated theme: pill nav, hard-shadow
+                     cards, full-screen map shells
     whalecall_logo.svg
   templates/
-    _layout.html     Shared header/footer/ocean background
-    landing.html     SOS button + login/signup
+    _layout.html     Shared pill nav / footer
+    landing.html     SOS button, login/signup, illustrated hero
     sos.html         Tap-only emergency intake + live confirmation
-    home.html        Uber-style map, search, boat list, booking
+    home.html        Full-screen Uber-style map: search, boat list,
+                      booking, zoom/recenter, route-line preview
     rides.html        Ride history
-    dispatcher.html   Live sonar/priority-queue view
+    dispatcher.html   Full-screen ops view: live fleet map + Active
+                       Alerts panel + the detailed sonar/priority-queue
+    fleet.html         Every Pod Guide, live status (polls /api/fleet)
 tests/
   test_priority.py   Unit tests for the scoring algorithm
 ```
@@ -120,11 +126,29 @@ tests/
 | Sanctuary Point | Hospital (fixed SOS destination) | 35%, 80% |
 | Reeftop Isle | School | 65%, 20% |
 
+## Two first-class flows, not one bolted onto the other
+
+WhaleCall is both an Uber-for-boats rideshare app **and** an emergency
+dispatcher -- neither is a lesser feature of the other:
+
+- **Ride** (`/home`) -- pick pickup + destination on a full-screen map,
+  see nearby Pod Guides with ETA and neighbor vouches, book, and watch
+  a live route line follow your boat to pickup and then to your
+  destination.
+- **Triage** (`/dispatcher`) -- the same live archipelago map from an
+  ops point of view: every boat's real position, a floating Active
+  Alerts panel of the current priority queue, and the full auditable
+  sonar/score-breakdown view below it.
+- **Fleet** (`/fleet`) -- every Pod Guide's live status (docked or en
+  route, and to where), polling the same real backend state the map
+  and ride tracking use -- not a mock.
+
 ## API
 
-- `GET /`, `/sos`, `/home`, `/rides`, `/dispatcher` -- pages
+- `GET /`, `/sos`, `/home`, `/rides`, `/dispatcher`, `/fleet` -- pages
 - `GET /api/islands` -- the archipelago
 - `GET /api/boats/nearby?destination_id=&origin_id=` -- available boats, sorted by ETA
+- `GET /api/fleet` -- every boat's live position and status (docked / en route + destination)
 - `POST /api/sos` -- submit an SOS call: scores it, auto-books the nearest emergency boat to Sanctuary Point
 - `POST /api/ride-request` -- book a standard ride
 - `POST /api/login`, `/api/signup`, `/api/logout` -- minimal session-cookie auth

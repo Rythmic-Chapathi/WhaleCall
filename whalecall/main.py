@@ -121,7 +121,49 @@ def rides_page(request: Request, wc_session: Optional[str] = Cookie(default=None
 @app.get("/dispatcher")
 def dispatcher_page(request: Request, wc_session: Optional[str] = Cookie(default=None)):
     user = data.get_user_from_session(wc_session)
-    return templates.TemplateResponse(request, "dispatcher.html", {"user": user})
+    return templates.TemplateResponse(
+        request,
+        "dispatcher.html",
+        {"user": user, "islands": [i.model_dump() for i in data.ISLANDS]},
+    )
+
+
+@app.get("/fleet")
+def fleet_page(request: Request, wc_session: Optional[str] = Cookie(default=None)):
+    user = data.get_user_from_session(wc_session)
+    now = data.now_utc()
+    boats_view = []
+    for boat in data.BOATS:
+        state = data.boat_live_state(boat.id, now)
+        entry = boat.model_dump()
+        entry["state"] = state
+        entry["current_island_name"] = data.ISLANDS_BY_ID[boat.current_island_id].name
+        entry["destination_name"] = (
+            data.ISLANDS_BY_ID[state["destination_island_id"]].name if state["destination_island_id"] else None
+        )
+        boats_view.append(entry)
+    return templates.TemplateResponse(
+        request,
+        "fleet.html",
+        {"user": user, "boats": boats_view, "islands": [i.model_dump() for i in data.ISLANDS]},
+    )
+
+
+@app.get("/api/fleet")
+def api_fleet():
+    now = data.now_utc()
+    boats_view = []
+    for boat in data.BOATS:
+        state = data.boat_live_state(boat.id, now)
+        boats_view.append({
+            "boat": boat,
+            "state": state,
+            "current_island_name": data.ISLANDS_BY_ID[boat.current_island_id].name,
+            "destination_name": (
+                data.ISLANDS_BY_ID[state["destination_island_id"]].name if state["destination_island_id"] else None
+            ),
+        })
+    return boats_view
 
 
 # ---------------------------------------------------------------------------

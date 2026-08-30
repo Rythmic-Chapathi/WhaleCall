@@ -111,6 +111,11 @@
       selectedId: originSelect.value,
       onSelect: (island) => { originSelect.value = island.id; drawOriginMap(); },
     });
+    const origin = islandById(ISLANDS, originSelect.value);
+    const hospital = islandById(ISLANDS, "sanctuary-point");
+    if (origin && hospital && origin.id !== hospital.id) {
+      upsertRouteLine(originMap, "preview", origin.x_pct, origin.y_pct, hospital.x_pct, hospital.y_pct);
+    }
   }
   originSelect.addEventListener("change", drawOriginMap);
   drawOriginMap();
@@ -145,6 +150,8 @@
         msg.textContent = `${res.boat.captain_name} is on the way to Sanctuary Point (the hospital island).`;
         trackRide(res.request_id, trackingMap, {
           boatLabel: res.boat.captain_name,
+          origin: res.origin,
+          destination: res.destination,
           onUpdate: (data) => {
             etaText.textContent = data.arrived ? "Arrived at Sanctuary Point." :
               `Est. ${data.eta_remaining_minutes} min -- ${data.phase === "to_pickup" ? "coming to get you" : "on the way to the hospital"}`;

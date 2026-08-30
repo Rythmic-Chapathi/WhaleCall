@@ -1,14 +1,21 @@
 {% extends "_layout.html" %}
 {% block title %}WhaleCall -- plan a ride{% endblock %}
-{% block content %}
-<section id="plan-section">
-  <h1 style="display:flex; align-items:center; gap:10px;">
-    <span aria-hidden="true" style="background:var(--gold); border:2px solid var(--navy); border-radius:50%; padding:6px 9px; font-size:1.2rem;">🗺️</span>
-    Where to, {{ user.name }}?
-  </h1>
+{% block page_class %}after-hero{% endblock %}
 
-  <div class="grid-2">
-    <div>
+{% block hero %}
+<section id="plan-section" class="map-shell">
+  <canvas id="ride-water-shader" class="map-shell-bg" aria-hidden="true"></canvas>
+
+  <div class="map-shell-svg-wrap">
+    <svg id="plan-map" aria-label="Tap a destination island"></svg>
+  </div>
+
+  <aside class="map-panel">
+    <div class="map-panel-header">
+      <h2>Where to, {{ user.name }}?</h2>
+      <p>Uber-style booking, boat edition. Pick pickup + destination, see nearby Pod Guides.</p>
+    </div>
+    <div class="map-panel-body">
       <div class="field">
         <label for="origin-select">Pickup island</label>
         <select id="origin-select">
@@ -20,33 +27,46 @@
 
       <div class="search-wrap">
         <label for="dest-search" class="sr-only">Search destination island</label>
-        <input id="dest-search" type="text" placeholder="Search a destination island, e.g. Driftmarket Isle" autocomplete="off">
+        <input id="dest-search" type="text" placeholder="Search a destination, e.g. Driftmarket Isle" autocomplete="off">
         <div class="search-results" id="dest-results" hidden></div>
         <span aria-hidden="true" style="position:absolute; right:18px; top:13px; color:var(--outline); font-size:1.1rem;">🔍</span>
       </div>
 
-      <div class="map-wrap">
-        <svg id="plan-map" aria-label="Tap a destination island"></svg>
-      </div>
-    </div>
-
-    <div>
-      <div id="boats-empty" class="card">
-        <p>Pick a destination on the map or search above to see nearby Pod Guides.</p>
+      <div id="boats-empty">
+        <p style="margin:0; color:var(--outline); font-size:0.9rem;">Pick a destination on the map or search above to see nearby Pod Guides.</p>
       </div>
       <div id="boats-panel" hidden>
-        <h2 id="boats-heading"></h2>
+        <h3 id="boats-heading" style="font-size:0.95rem; margin-bottom:10px;"></h3>
         <div id="boats-list"></div>
       </div>
     </div>
-  </div>
-</section>
+  </aside>
 
+  <div class="map-controls">
+    <div class="zoom-group">
+      <button type="button" class="zoom-btn" id="zoom-in-btn" aria-label="Zoom in">+</button>
+      <button type="button" class="zoom-btn" id="zoom-out-btn" aria-label="Zoom out">&minus;</button>
+    </div>
+    <button type="button" class="recenter-btn" id="recenter-btn">
+      <span aria-hidden="true">📍</span> Recenter
+    </button>
+  </div>
+
+  <nav class="map-bottom-nav" aria-label="Mobile">
+    <a href="/dispatcher"><span class="emoji" aria-hidden="true">🚨</span>Triage</a>
+    <a href="/home" class="active"><span class="emoji" aria-hidden="true">🚤</span>Ride</a>
+    <a href="/fleet"><span class="emoji" aria-hidden="true">📡</span>Fleet</a>
+    <a href="/rides"><span class="emoji" aria-hidden="true">🕓</span>Rides</a>
+  </nav>
+</section>
+{% endblock %}
+
+{% block content %}
 <section id="confirmation-section" class="card confirmation" hidden>
   <div class="whale-icon" aria-hidden="true">🐋</div>
   <h1>Boat booked!</h1>
   <p id="confirmation-message"></p>
-  <p id="eta-text" style="font-size:1.4rem; font-weight:800; color:var(--ocean-deep);"></p>
+  <p id="eta-text" style="font-size:1.4rem; font-weight:800; color:var(--navy);"></p>
   <div class="map-wrap" style="max-width:520px; margin:10px auto 20px;">
     <svg id="tracking-map" aria-label="Live map of your Pod Guide"></svg>
   </div>
@@ -68,12 +88,21 @@
   const boatsList = document.getElementById("boats-list");
 
   let selectedDestination = null;
+  let mapZoom = 1;
 
   function drawPlanMap() {
     renderIslandMap(planMap, ISLANDS, {
       selectedId: selectedDestination ? selectedDestination.id : null,
       onSelect: (island) => selectDestination(island),
     });
+    updateRoutePreview();
+  }
+
+  function updateRoutePreview() {
+    const origin = islandById(ISLANDS, originSelect.value);
+    if (origin && selectedDestination) {
+      upsertRouteLine(planMap, "preview", origin.x_pct, origin.y_pct, selectedDestination.x_pct, selectedDestination.y_pct);
+    }
   }
 
   async function selectDestination(island) {
@@ -117,6 +146,7 @@
 
   async function bookRide(boatId, destination) {
     try {
+      const origin = islandById(ISLANDS, originSelect.value);
       const res = await postJSON("/api/ride-request", {
         destination_island_id: destination.id,
         origin_island_id: originSelect.value,
@@ -133,6 +163,8 @@
       const etaText = document.getElementById("eta-text");
       trackRide(res.request_id, trackingMap, {
         boatLabel: res.boat.captain_name,
+        origin: origin,
+        destination: destination,
         onUpdate: (data) => {
           etaText.textContent = data.arrived ? `Arrived at ${res.destination.name}.` :
             `Est. ${data.eta_remaining_minutes} min -- ${data.phase === "to_pickup" ? "coming to pick you up" : "on the way to " + res.destination.name}`;
@@ -148,9 +180,27 @@
 
   originSelect.addEventListener("change", () => {
     if (selectedDestination) selectDestination(selectedDestination);
+    else updateRoutePreview();
+  });
+
+  document.getElementById("zoom-in-btn").addEventListener("click", () => {
+    mapZoom = Math.min(1.8, mapZoom + 0.2);
+    planMap.style.transform = `scale(${mapZoom})`;
+  });
+  document.getElementById("zoom-out-btn").addEventListener("click", () => {
+    mapZoom = Math.max(0.7, mapZoom - 0.2);
+    planMap.style.transform = `scale(${mapZoom})`;
+  });
+  document.getElementById("recenter-btn").addEventListener("click", () => {
+    mapZoom = 1;
+    planMap.style.transform = "scale(1)";
   });
 
   setupIslandSearch(destSearch, destResults, ISLANDS, selectDestination);
   drawPlanMap();
+  startWaterShader(document.getElementById("ride-water-shader"), {
+    shallow: [0.89, 0.957, 0.953],
+    deep: [0.643, 0.859, 0.91],
+  });
 </script>
 {% endblock %}

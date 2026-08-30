@@ -1,9 +1,58 @@
 {% extends "_layout.html" %}
-{% block title %}Dispatcher -- WhaleCall{% endblock %}
+{% block title %}Triage &amp; Fleet Map -- WhaleCall{% endblock %}
+{% block page_class %}after-hero{% endblock %}
+
+{% block hero %}
+<section class="map-shell">
+  <canvas id="dispatch-water-shader" class="map-shell-bg" aria-hidden="true"></canvas>
+
+  <div class="map-shell-svg-wrap">
+    <svg id="dispatch-map" aria-label="Live archipelago map with fleet positions"></svg>
+  </div>
+
+  <aside class="map-panel">
+    <div class="map-panel-header">
+      <h2>Active Alerts</h2>
+      <p>Archipelago-wide, live. Highest priority first.</p>
+    </div>
+    <div class="map-panel-body">
+      <div class="sonar-wrap" style="max-width:180px; margin:0 auto 16px;">
+        <svg id="sonar-mini" viewBox="0 0 100 100" aria-hidden="true">
+          <g class="sonar-grid">
+            <circle cx="50" cy="50" r="20"/>
+            <circle cx="50" cy="50" r="40"/>
+          </g>
+        </svg>
+      </div>
+      <div id="alert-cards">
+        <p style="color:var(--outline); font-size:0.85rem;">No active calls right now.</p>
+      </div>
+    </div>
+  </aside>
+
+  <div class="map-controls">
+    <div class="zoom-group">
+      <button type="button" class="zoom-btn" id="zoom-in-btn" aria-label="Zoom in">+</button>
+      <button type="button" class="zoom-btn" id="zoom-out-btn" aria-label="Zoom out">&minus;</button>
+    </div>
+    <button type="button" class="recenter-btn" id="recenter-btn">
+      <span aria-hidden="true">📍</span> Recenter Fleet
+    </button>
+  </div>
+
+  <nav class="map-bottom-nav" aria-label="Mobile">
+    <a href="/dispatcher" class="active"><span class="emoji" aria-hidden="true">🚨</span>Triage</a>
+    <a href="/home"><span class="emoji" aria-hidden="true">🚤</span>Ride</a>
+    <a href="/fleet"><span class="emoji" aria-hidden="true">📡</span>Fleet</a>
+    <a href="/rides"><span class="emoji" aria-hidden="true">🕓</span>Rides</a>
+  </nav>
+</section>
+{% endblock %}
+
 {% block content %}
 <h1 style="display:flex; align-items:center; gap:10px;">
   <span aria-hidden="true" style="background:var(--gold); border:2px solid var(--navy); border-radius:50%; padding:6px 9px; font-size:1.2rem;">📡</span>
-  Dispatcher Sonar
+  Full Dispatcher Sonar
 </h1>
 <p>Every active call, live. Ring size and brightness track priority; calls drift toward the center and brighten
 the longer they wait unanswered -- that's the fairness "amplification" built into the scoring, not a visual trick.</p>
@@ -26,9 +75,16 @@ the longer they wait unanswered -- that's the fairness "amplification" built int
 
 {% block extra_scripts %}
 <script>
+  const ISLANDS = {{ islands | tojson }};
   const SCORE_CAP = 16;
+  const dispatchMap = document.getElementById("dispatch-map");
   const sonar = document.getElementById("sonar");
+  const sonarMini = document.getElementById("sonar-mini");
   const queueListEl = document.getElementById("queue-list");
+  const alertCardsEl = document.getElementById("alert-cards");
+
+  let mapZoom = 1;
+  renderIslandMap(dispatchMap, ISLANDS, {});
 
   function hashAngle(id) {
     let h = 0;
@@ -36,8 +92,8 @@ the longer they wait unanswered -- that's the fairness "amplification" built int
     return h;
   }
 
-  function renderSonar(calls) {
-    sonar.querySelectorAll(".call-ring").forEach((el) => el.remove());
+  function renderSonarInto(svgEl, calls) {
+    svgEl.querySelectorAll(".call-ring").forEach((el) => el.remove());
     calls.forEach((call) => {
       const t = Math.min(1, call.score / SCORE_CAP);
       const angle = (hashAngle(call.id) * Math.PI) / 180;
@@ -56,7 +112,28 @@ the longer they wait unanswered -- that's the fairness "amplification" built int
       const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
       title.textContent = `${call.is_sos ? "SOS" : "Standard"} call, priority ${call.score}`;
       circle.appendChild(title);
-      sonar.appendChild(circle);
+      svgEl.appendChild(circle);
+    });
+  }
+
+  function renderAlertCards(calls) {
+    if (!calls.length) {
+      alertCardsEl.innerHTML = '<p style="color:var(--outline); font-size:0.85rem;">No active calls right now.</p>';
+      return;
+    }
+    alertCardsEl.innerHTML = "";
+    calls.forEach((call) => {
+      const card = document.createElement("div");
+      card.className = "alert-card " + (call.is_sos ? "sos" : "standard");
+      card.innerHTML = `
+        <div class="alert-top">
+          <span class="alert-label">${call.is_sos ? "High Priority" : "Standard"}</span>
+          <span aria-hidden="true">${call.is_sos ? "🚨" : "🚤"}</span>
+        </div>
+        <h3>${call.origin_name || "?"} &rarr; ${call.destination_name || "?"}</h3>
+        <p>${call.boat_captain ? call.boat_captain + " &middot; " : ""}priority ${call.score}</p>
+      `;
+      alertCardsEl.appendChild(card);
     });
   }
 
@@ -85,15 +162,57 @@ the longer they wait unanswered -- that's the fairness "amplification" built int
     });
   }
 
-  function connect() {
+  function connectQueue() {
     const socket = new WebSocket(`${WS_BASE}/ws/queue`);
     socket.addEventListener("message", (event) => {
       const data = JSON.parse(event.data);
-      renderSonar(data.calls);
+      renderSonarInto(sonar, data.calls);
+      renderSonarInto(sonarMini, data.calls);
+      renderAlertCards(data.calls);
       renderQueueList(data.calls);
     });
-    socket.addEventListener("close", () => setTimeout(connect, 2000));
+    socket.addEventListener("close", () => setTimeout(connectQueue, 2000));
   }
-  connect();
+  connectQueue();
+
+  async function pollFleet() {
+    try {
+      const fleet = await getJSON("/api/fleet");
+      fleet.forEach((entry) => {
+        upsertBoatMarker(dispatchMap, entry.boat.id, entry.state.x_pct, entry.state.y_pct, {
+          label: `${entry.boat.captain_name} -- ${entry.state.moving ? "en route" : "docked"}`,
+          stateClass: entry.state.moving ? "moving" : "docked",
+        });
+        if (entry.state.moving && entry.state.destination_island_id) {
+          const dest = islandById(ISLANDS, entry.state.destination_island_id);
+          if (dest) upsertRouteLine(dispatchMap, entry.boat.id, entry.state.x_pct, entry.state.y_pct, dest.x_pct, dest.y_pct);
+        } else {
+          removeRouteLine(dispatchMap, entry.boat.id);
+        }
+      });
+    } catch (err) {
+      // Non-fatal -- the map still shows islands and alerts either way.
+    }
+  }
+  pollFleet();
+  setInterval(pollFleet, 2500);
+
+  document.getElementById("zoom-in-btn").addEventListener("click", () => {
+    mapZoom = Math.min(1.8, mapZoom + 0.2);
+    dispatchMap.style.transform = `scale(${mapZoom})`;
+  });
+  document.getElementById("zoom-out-btn").addEventListener("click", () => {
+    mapZoom = Math.max(0.7, mapZoom - 0.2);
+    dispatchMap.style.transform = `scale(${mapZoom})`;
+  });
+  document.getElementById("recenter-btn").addEventListener("click", () => {
+    mapZoom = 1;
+    dispatchMap.style.transform = "scale(1)";
+  });
+
+  startWaterShader(document.getElementById("dispatch-water-shader"), {
+    shallow: [0.89, 0.957, 0.953],
+    deep: [0.643, 0.859, 0.91],
+  });
 </script>
 {% endblock %}
