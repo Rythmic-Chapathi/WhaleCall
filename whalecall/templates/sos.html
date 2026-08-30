@@ -1,0 +1,157 @@
+{% extends "_layout.html" %}
+{% block title %}Send an SOS -- WhaleCall{% endblock %}
+{% block nav %}{% endblock %}
+{% block content %}
+<section id="intake-section" class="card" style="max-width:640px; margin:0 auto;">
+  <h1>We hear you.</h1>
+  <p>Answer with taps -- no typing needed. This takes about 20 seconds.</p>
+
+  <form id="sos-form">
+    <div class="intake-step active" data-step="1">
+      <div class="step-header"><h2>How old is the person needing help?</h2><span class="step-progress">Step 1 of 4</span></div>
+      <div class="choice-row" role="group" aria-label="Age bracket">
+        <button type="button" class="choice" data-field="age_bracket" data-value="child" aria-pressed="false"><span class="icon" aria-hidden="true">🧒</span>Child</button>
+        <button type="button" class="choice" data-field="age_bracket" data-value="adult" aria-pressed="false"><span class="icon" aria-hidden="true">🧑</span>Adult</button>
+        <button type="button" class="choice" data-field="age_bracket" data-value="elderly" aria-pressed="false"><span class="icon" aria-hidden="true">🧓</span>Elderly</button>
+      </div>
+      <div class="step-nav"><span></span><button type="button" class="btn btn-primary next-step" data-next="2" disabled>Next</button></div>
+    </div>
+
+    <div class="intake-step" data-step="2">
+      <div class="step-header"><h2>Any accessibility needs?</h2><span class="step-progress">Step 2 of 4</span></div>
+      <div class="choice-row" role="group" aria-label="Accessibility needs">
+        <button type="button" class="choice" data-field="accessibility" data-value="mobility" aria-pressed="false"><span class="icon" aria-hidden="true">♿</span>Mobility</button>
+        <button type="button" class="choice" data-field="accessibility" data-value="visual" aria-pressed="false"><span class="icon" aria-hidden="true">👁️</span>Visual</button>
+        <button type="button" class="choice" data-field="accessibility" data-value="hearing" aria-pressed="false"><span class="icon" aria-hidden="true">👂</span>Hearing</button>
+        <button type="button" class="choice" data-field="accessibility" data-value="cognitive" aria-pressed="false"><span class="icon" aria-hidden="true">🧠</span>Cognitive</button>
+        <button type="button" class="choice" data-field="accessibility" data-value="none" aria-pressed="false"><span class="icon" aria-hidden="true">✅</span>None</button>
+      </div>
+      <div class="step-nav"><button type="button" class="btn btn-secondary prev-step" data-prev="1">Back</button><button type="button" class="btn btn-primary next-step" data-next="3" disabled>Next</button></div>
+    </div>
+
+    <div class="intake-step" data-step="3">
+      <div class="step-header"><h2>How urgent is the medical need?</h2><span class="step-progress">Step 3 of 4</span></div>
+      <div class="choice-row" role="group" aria-label="Medical urgency">
+        <button type="button" class="choice" data-field="medical" data-value="routine" aria-pressed="false"><span class="icon" aria-hidden="true">🩹</span>Routine</button>
+        <button type="button" class="choice severity-urgent" data-field="medical" data-value="urgent" aria-pressed="false"><span class="icon" aria-hidden="true">⚠️</span>Urgent</button>
+        <button type="button" class="choice severity-urgent" data-field="medical" data-value="critical" aria-pressed="false"><span class="icon" aria-hidden="true">🚨</span>Critical</button>
+      </div>
+      <div class="step-nav"><button type="button" class="btn btn-secondary prev-step" data-prev="2">Back</button><button type="button" class="btn btn-primary next-step" data-next="4" disabled>Next</button></div>
+    </div>
+
+    <div class="intake-step" data-step="4">
+      <div class="step-header"><h2>Where are you now?</h2><span class="step-progress">Step 4 of 4</span></div>
+      <div class="field">
+        <label for="origin-select">We've pinned your nearest island. Change it if needed.</label>
+        <select id="origin-select" name="origin_island_id">
+          {% for island in islands %}
+          <option value="{{ island.id }}" {% if island.id == default_origin %}selected{% endif %}>{{ island.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="map-wrap" style="max-width:420px; margin: 10px auto 20px;">
+        <svg id="origin-map" aria-label="Tap your island"></svg>
+      </div>
+      <div class="step-nav">
+        <button type="button" class="btn btn-secondary prev-step" data-prev="3">Back</button>
+        <button type="submit" class="btn btn-primary" id="sos-submit">Send SOS</button>
+      </div>
+      <p class="form-note" id="sos-error" role="alert"></p>
+    </div>
+  </form>
+</section>
+
+<section id="confirmation-section" class="card confirmation" style="max-width:640px; margin:0 auto;" hidden>
+  <div class="whale-icon" aria-hidden="true">🐋</div>
+  <h1>Your call has been heard.</h1>
+  <p id="confirmation-message">A Pod Guide is on the way.</p>
+  <p id="eta-text" style="font-size:1.4rem; font-weight:800; color:var(--ocean-deep);"></p>
+  <div class="map-wrap" style="max-width:520px; margin: 10px auto 20px;">
+    <svg id="tracking-map" aria-label="Live map of your Pod Guide"></svg>
+  </div>
+  <p class="footer-note" id="priority-note"></p>
+  <a class="btn btn-secondary" href="/">Back to WhaleCall home</a>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const ISLANDS = {{ islands | tojson }};
+  const state = { age_bracket: null, accessibility: null, medical: null };
+
+  function goToStep(n) {
+    document.querySelectorAll(".intake-step").forEach((el) => {
+      el.classList.toggle("active", el.dataset.step === String(n));
+    });
+  }
+
+  document.querySelectorAll(".choice").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const field = btn.dataset.field;
+      const value = btn.dataset.value;
+      state[field] = value;
+      const row = btn.closest(".choice-row");
+      row.querySelectorAll(".choice").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+      const step = btn.closest(".intake-step");
+      step.querySelector(".next-step").disabled = false;
+    });
+  });
+
+  document.querySelectorAll(".next-step").forEach((btn) => btn.addEventListener("click", () => goToStep(btn.dataset.next)));
+  document.querySelectorAll(".prev-step").forEach((btn) => btn.addEventListener("click", () => goToStep(btn.dataset.prev)));
+
+  const originSelect = document.getElementById("origin-select");
+  const originMap = document.getElementById("origin-map");
+
+  function drawOriginMap() {
+    renderIslandMap(originMap, ISLANDS, {
+      selectedId: originSelect.value,
+      onSelect: (island) => { originSelect.value = island.id; drawOriginMap(); },
+    });
+  }
+  originSelect.addEventListener("change", drawOriginMap);
+  drawOriginMap();
+
+  document.getElementById("sos-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById("sos-error");
+    errorEl.textContent = "";
+    if (!state.age_bracket || !state.accessibility || !state.medical) {
+      errorEl.textContent = "Please answer every step first.";
+      return;
+    }
+    const payload = { ...state, origin_island_id: originSelect.value };
+    try {
+      const res = await postJSON("/api/sos", payload);
+      document.getElementById("intake-section").hidden = true;
+      const confirmSection = document.getElementById("confirmation-section");
+      confirmSection.hidden = false;
+
+      const trackingMap = document.getElementById("tracking-map");
+      renderIslandMap(trackingMap, ISLANDS, {});
+
+      const etaText = document.getElementById("eta-text");
+      const msg = document.getElementById("confirmation-message");
+      const priorityNote = document.getElementById("priority-note");
+      priorityNote.textContent = `Priority score: ${res.priority_score} (fully explainable: age +${res.priority_breakdown.age}, accessibility +${res.priority_breakdown.accessibility}, medical +${res.priority_breakdown.medical}).`;
+
+      if (res.queued) {
+        msg.textContent = "Every Pod Guide is out on a call right now -- you're first in line and a boat will be assigned the moment one is free.";
+        etaText.textContent = "";
+      } else {
+        msg.textContent = `${res.boat.captain_name} is on the way to Sanctuary Point (the hospital island).`;
+        trackRide(res.request_id, trackingMap, {
+          boatLabel: res.boat.captain_name,
+          onUpdate: (data) => {
+            etaText.textContent = data.arrived ? "Arrived at Sanctuary Point." :
+              `Est. ${data.eta_remaining_minutes} min -- ${data.phase === "to_pickup" ? "coming to get you" : "on the way to the hospital"}`;
+          },
+        });
+      }
+      confirmSection.scrollIntoView({ behavior: "smooth" });
+    } catch (err) {
+      errorEl.textContent = err.message;
+    }
+  });
+</script>
+{% endblock %}

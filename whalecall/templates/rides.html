@@ -1,0 +1,22 @@
+{% extends "_layout.html" %}
+{% block title %}My rides -- WhaleCall{% endblock %}
+{% block content %}
+<h1>My rides</h1>
+{% if not rides %}
+  <div class="card"><p>No rides yet. <a href="/home">Book your first WhaleCall.</a></p></div>
+{% else %}
+  {% for ride in rides %}
+  <div class="boat-card">
+    <div>
+      <span class="tag {{ 'tag-sos' if ride.is_sos else 'tag-standard' }}">{{ "SOS" if ride.is_sos else "Standard" }}</span>
+      <span class="tag tag-completed" style="margin-left:6px;">{{ ride.status }}</span>
+      <div style="margin-top:8px;"><strong>{{ islands_by_id[ride.origin_island_id].name }} &rarr; {{ islands_by_id[ride.destination_island_id].name }}</strong></div>
+      <div class="meta">
+        {% if ride.boat_id and ride.boat_id in boats_by_id %}Captain {{ boats_by_id[ride.boat_id].captain_name }} &middot; {% endif %}
+        {{ ride.created_at }}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends "_layout.html" %}
+{% block title %}WhaleCall -- your call always reaches the pod{% endblock %}
+{% block content %}
+<section class="landing-hero">
+  <h1 style="color:var(--white); font-size:2.2rem;">WhaleCall</h1>
+  <p class="tagline">Your call always reaches the pod.</p>
+
+  <a href="/sos" class="sos-button" aria-label="Send an SOS -- no login needed">
+    <span class="sound-rings" aria-hidden="true"><span></span><span></span><span></span></span>
+    SOS
+  </a>
+  <p class="sos-caption">No login needed. Tap SOS any time you or someone near you needs help fast.</p>
+
+  {% if user %}
+    <div class="auth-row">
+      <a class="btn btn-primary" href="/home">Go to the map, {{ user.name }}</a>
+    </div>
+  {% else %}
+    <div class="auth-row">
+      <button class="btn btn-secondary" id="show-login">Log in</button>
+      <button class="btn btn-secondary" id="show-signup">Sign up</button>
+    </div>
+
+    <div class="card auth-panel" id="login-panel" hidden>
+      <h2>Log in</h2>
+      <form id="login-form">
+        <div class="field">
+          <label for="login-name">Name</label>
+          <input id="login-name" name="name" required autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="login-password">Password</label>
+          <input id="login-password" name="password" type="password" required autocomplete="current-password">
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Log in</button>
+        <p class="form-note" id="login-error" role="alert"></p>
+      </form>
+      <p class="footer-note">Demo account: name <strong>Lani</strong>, password <strong>whalecall</strong></p>
+    </div>
+
+    <div class="card auth-panel" id="signup-panel" hidden>
+      <h2>Sign up</h2>
+      <form id="signup-form">
+        <div class="field">
+          <label for="signup-name">Name</label>
+          <input id="signup-name" name="name" required autocomplete="name">
+        </div>
+        <div class="field">
+          <label for="signup-home">Home island</label>
+          <select id="signup-home" name="home_island_id">
+            {% for island in ["kelp-hollow","port-marlin","driftmarket-isle","sanctuary-point","reeftop-isle"] %}
+            <option value="{{ island }}">{{ island.replace('-', ' ').title() }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="signup-password">Password</label>
+          <input id="signup-password" name="password" type="password" required autocomplete="new-password">
+        </div>
+        <button class="btn btn-primary btn-block" type="submit">Create account</button>
+        <p class="form-note" id="signup-error" role="alert"></p>
+      </form>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const showLogin = document.getElementById("show-login");
+  const showSignup = document.getElementById("show-signup");
+  const loginPanel = document.getElementById("login-panel");
+  const signupPanel = document.getElementById("signup-panel");
+
+  if (showLogin) showLogin.addEventListener("click", () => {
+    loginPanel.hidden = false; signupPanel.hidden = true; loginPanel.scrollIntoView({ behavior: "smooth" });
+  });
+  if (showSignup) showSignup.addEventListener("click", () => {
+    signupPanel.hidden = false; loginPanel.hidden = true; signupPanel.scrollIntoView({ behavior: "smooth" });
+  });
+
+  const loginForm = document.getElementById("login-form");
+  if (loginForm) loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById("login-error");
+    errorEl.textContent = "";
+    try {
+      await postJSON("/api/login", {
+        name: document.getElementById("login-name").value,
+        password: document.getElementById("login-password").value,
+      });
+      window.location.href = "/home";
+    } catch (err) {
+      errorEl.textContent = err.message;
+    }
+  });
+
+  const signupForm = document.getElementById("signup-form");
+  if (signupForm) signupForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById("signup-error");
+    errorEl.textContent = "";
+    try {
+      await postJSON("/api/signup", {
+        name: document.getElementById("signup-name").value,
+        home_island_id: document.getElementById("signup-home").value,
+        password: document.getElementById("signup-password").value,
+      });
+      window.location.href = "/home";
+    } catch (err) {
+      errorEl.textContent = err.message;
+    }
+  });
+</script>
+{% endblock %}

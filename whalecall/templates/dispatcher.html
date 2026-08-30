@@ -1,0 +1,96 @@
+{% extends "_layout.html" %}
+{% block title %}Dispatcher -- WhaleCall{% endblock %}
+{% block content %}
+<h1>Dispatcher sonar</h1>
+<p>Every active call, live. Ring size and brightness track priority; calls drift toward the center and brighten
+the longer they wait unanswered -- that's the fairness "amplification" built into the scoring, not a visual trick.</p>
+
+<div class="sonar-wrap">
+  <svg id="sonar" viewBox="0 0 100 100" aria-label="Live radar of active calls, most urgent nearest the center">
+    <g class="sonar-grid">
+      <circle cx="50" cy="50" r="15"/>
+      <circle cx="50" cy="50" r="30"/>
+      <circle cx="50" cy="50" r="45"/>
+    </g>
+  </svg>
+</div>
+
+<h2 style="margin-top:26px;">Active queue, highest priority first</h2>
+<ul class="queue-list" id="queue-list">
+  <li class="queue-item"><span>No active calls right now.</span></li>
+</ul>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const SCORE_CAP = 16;
+  const sonar = document.getElementById("sonar");
+  const queueListEl = document.getElementById("queue-list");
+
+  function hashAngle(id) {
+    let h = 0;
+    for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360;
+    return h;
+  }
+
+  function renderSonar(calls) {
+    sonar.querySelectorAll(".call-ring").forEach((el) => el.remove());
+    calls.forEach((call) => {
+      const t = Math.min(1, call.score / SCORE_CAP);
+      const angle = (hashAngle(call.id) * Math.PI) / 180;
+      const dist = 42 * (1 - t) + 6;
+      const cx = 50 + dist * Math.cos(angle);
+      const cy = 50 + dist * Math.sin(angle);
+      const r = 3 + t * 9;
+      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      circle.setAttribute("class", "sonar-ring call-ring");
+      circle.setAttribute("cx", cx);
+      circle.setAttribute("cy", cy);
+      circle.setAttribute("r", r);
+      circle.setAttribute("stroke", call.is_sos ? "#FF7A59" : "#1FA6A0");
+      circle.setAttribute("stroke-width", 1.5 + t * 2);
+      circle.setAttribute("opacity", 0.35 + t * 0.6);
+      const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+      title.textContent = `${call.is_sos ? "SOS" : "Standard"} call, priority ${call.score}`;
+      circle.appendChild(title);
+      sonar.appendChild(circle);
+    });
+  }
+
+  function renderQueueList(calls) {
+    if (!calls.length) {
+      queueListEl.innerHTML = '<li class="queue-item"><span>No active calls right now.</span></li>';
+      return;
+    }
+    queueListEl.innerHTML = "";
+    calls.forEach((call) => {
+      const li = document.createElement("li");
+      li.className = "queue-item" + (call.is_sos ? " is-sos" : "");
+      li.innerHTML = `
+        <div>
+          <span class="tag ${call.is_sos ? "tag-sos" : "tag-standard"}">${call.is_sos ? "SOS" : "Standard"}</span>
+          <div style="margin-top:6px;"><strong>${call.origin_name || "?"} &rarr; ${call.destination_name || "?"}</strong></div>
+          <div class="breakdown">
+            age +${call.breakdown.age} &middot; accessibility +${call.breakdown.accessibility} &middot;
+            medical +${call.breakdown.medical} &middot; waited ${call.breakdown.minutes_waited}min (+${call.breakdown.wait_bonus})
+            ${call.boat_captain ? " &middot; " + call.boat_captain : ""}
+          </div>
+        </div>
+        <div class="score">${call.score}</div>
+      `;
+      queueListEl.appendChild(li);
+    });
+  }
+
+  function connect() {
+    const socket = new WebSocket(`${WS_BASE}/ws/queue`);
+    socket.addEventListener("message", (event) => {
+      const data = JSON.parse(event.data);
+      renderSonar(data.calls);
+      renderQueueList(data.calls);
+    });
+    socket.addEventListener("close", () => setTimeout(connect, 2000));
+  }
+  connect();
+</script>
+{% endblock %}

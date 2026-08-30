@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}WhaleCall{% endblock %}</title>
+  <link rel="icon" href="/static/whalecall_logo.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <div class="ocean-bg" aria-hidden="true">
+    <svg class="wave1" viewBox="0 0 1440 200" preserveAspectRatio="none">
+      <path fill="#F5E6C8" d="M0,100 C 240,150 480,50 720,100 C 960,150 1200,50 1440,100 L1440,200 L0,200 Z"/>
+    </svg>
+    <svg class="wave2" viewBox="0 0 1440 200" preserveAspectRatio="none">
+      <path fill="#F5E6C8" d="M0,120 C 240,70 480,170 720,120 C 960,70 1200,170 1440,120 L1440,200 L0,200 Z"/>
+    </svg>
+  </div>
+
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="/">
+        <img src="/static/whalecall_logo.svg" alt="" width="42" height="42">
+        <span>WhaleCall</span>
+      </a>
+      <nav class="topbar-links" aria-label="Main">
+        {% block nav %}
+        {% if user %}
+          <a class="btn btn-secondary" href="/home">Map</a>
+          <a class="btn btn-secondary" href="/rides">My rides</a>
+          <a class="btn btn-secondary" href="/dispatcher">Dispatcher</a>
+          <span class="tag tag-standard" style="align-self:center;">Hi, {{ user.name }}</span>
+        {% else %}
+          <a class="btn btn-secondary" href="/dispatcher">Dispatcher</a>
+        {% endif %}
+        {% endblock %}
+      </nav>
+    </header>
+
+    {% block content %}{% endblock %}
+
+    <p class="footer-note">WhaleCall &middot; a fictional archipelago, a real priority algorithm &middot; every score is auditable, no black box.</p>
+  </div>
+
+  <script src="/static/app.js"></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

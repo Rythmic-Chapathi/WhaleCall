@@ -1,0 +1,152 @@
+{% extends "_layout.html" %}
+{% block title %}WhaleCall -- plan a ride{% endblock %}
+{% block content %}
+<section id="plan-section">
+  <h1>Where to, {{ user.name }}?</h1>
+
+  <div class="grid-2">
+    <div>
+      <div class="field">
+        <label for="origin-select">Pickup island</label>
+        <select id="origin-select">
+          {% for island in islands %}
+          <option value="{{ island.id }}" {% if island.id == user.home_island_id %}selected{% endif %}>{{ island.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="search-wrap">
+        <label for="dest-search" class="sr-only">Search destination island</label>
+        <input id="dest-search" type="text" placeholder="Search a destination island, e.g. Driftmarket Isle" autocomplete="off">
+        <div class="search-results" id="dest-results" hidden></div>
+      </div>
+
+      <div class="map-wrap">
+        <svg id="plan-map" aria-label="Tap a destination island"></svg>
+      </div>
+    </div>
+
+    <div>
+      <div id="boats-empty" class="card">
+        <p>Pick a destination on the map or search above to see nearby Pod Guides.</p>
+      </div>
+      <div id="boats-panel" hidden>
+        <h2 id="boats-heading"></h2>
+        <div id="boats-list"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="confirmation-section" class="card confirmation" hidden>
+  <div class="whale-icon" aria-hidden="true">🐋</div>
+  <h1>Boat booked!</h1>
+  <p id="confirmation-message"></p>
+  <p id="eta-text" style="font-size:1.4rem; font-weight:800; color:var(--ocean-deep);"></p>
+  <div class="map-wrap" style="max-width:520px; margin:10px auto 20px;">
+    <svg id="tracking-map" aria-label="Live map of your Pod Guide"></svg>
+  </div>
+  <a class="btn btn-secondary" href="/rides">View my rides</a>
+  <button class="btn btn-primary" id="book-another">Book another ride</button>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const ISLANDS = {{ islands | tojson }};
+  const originSelect = document.getElementById("origin-select");
+  const planMap = document.getElementById("plan-map");
+  const destSearch = document.getElementById("dest-search");
+  const destResults = document.getElementById("dest-results");
+  const boatsEmpty = document.getElementById("boats-empty");
+  const boatsPanel = document.getElementById("boats-panel");
+  const boatsHeading = document.getElementById("boats-heading");
+  const boatsList = document.getElementById("boats-list");
+
+  let selectedDestination = null;
+
+  function drawPlanMap() {
+    renderIslandMap(planMap, ISLANDS, {
+      selectedId: selectedDestination ? selectedDestination.id : null,
+      onSelect: (island) => selectDestination(island),
+    });
+  }
+
+  async function selectDestination(island) {
+    if (island.id === originSelect.value) return;
+    selectedDestination = island;
+    destSearch.value = island.name;
+    drawPlanMap();
+    boatsHeading.textContent = `Pod Guides near you, headed to ${island.name}`;
+    boatsList.innerHTML = "<p>Loading nearby boats&hellip;</p>";
+    boatsEmpty.hidden = true;
+    boatsPanel.hidden = false;
+    try {
+      const results = await getJSON(`/api/boats/nearby?destination_id=${island.id}&origin_id=${originSelect.value}`);
+      renderBoats(results, island);
+    } catch (err) {
+      boatsList.innerHTML = `<p class="form-note">${err.message}</p>`;
+    }
+  }
+
+  function renderBoats(results, destination) {
+    if (!results.length) {
+      boatsList.innerHTML = "<p>No Pod Guides are free right now -- check back in a moment.</p>";
+      return;
+    }
+    boatsList.innerHTML = "";
+    results.forEach((r) => {
+      const card = document.createElement("div");
+      card.className = "boat-card";
+      card.innerHTML = `
+        <div>
+          <strong>${r.boat.captain_name}</strong>
+          <div class="meta">Capacity ${r.boat.capacity} &middot; <span class="vouch">vouched by ${r.boat.vouch_count} neighbors</span></div>
+          <div class="meta">ETA ${r.eta_minutes} min</div>
+        </div>
+        <button class="btn btn-primary book-btn">Book</button>
+      `;
+      card.querySelector(".book-btn").addEventListener("click", () => bookRide(r.boat.id, destination));
+      boatsList.appendChild(card);
+    });
+  }
+
+  async function bookRide(boatId, destination) {
+    try {
+      const res = await postJSON("/api/ride-request", {
+        destination_island_id: destination.id,
+        origin_island_id: originSelect.value,
+        boat_id: boatId,
+      });
+      document.getElementById("plan-section").hidden = true;
+      const confirmSection = document.getElementById("confirmation-section");
+      confirmSection.hidden = false;
+      document.getElementById("confirmation-message").textContent =
+        `${res.boat.captain_name} is on the way to take you to ${res.destination.name}.`;
+
+      const trackingMap = document.getElementById("tracking-map");
+      renderIslandMap(trackingMap, ISLANDS, {});
+      const etaText = document.getElementById("eta-text");
+      trackRide(res.request_id, trackingMap, {
+        boatLabel: res.boat.captain_name,
+        onUpdate: (data) => {
+          etaText.textContent = data.arrived ? `Arrived at ${res.destination.name}.` :
+            `Est. ${data.eta_remaining_minutes} min -- ${data.phase === "to_pickup" ? "coming to pick you up" : "on the way to " + res.destination.name}`;
+        },
+      });
+      confirmSection.scrollIntoView({ behavior: "smooth" });
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  document.getElementById("book-another").addEventListener("click", () => window.location.reload());
+
+  originSelect.addEventListener("change", () => {
+    if (selectedDestination) selectDestination(selectedDestination);
+  });
+
+  setupIslandSearch(destSearch, destResults, ISLANDS, selectDestination);
+  drawPlanMap();
+</script>
+{% endblock %}
