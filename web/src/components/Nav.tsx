@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
+import { Show, UserButton } from "@clerk/nextjs";
 
 const NAV_LINKS = [
   { href: "/home", label: "Ride" },
@@ -36,22 +36,18 @@ export default function Nav() {
         ))}
 
         <Show when="signed-out">
-          <SignInButton mode="modal">
-            <button
-              type="button"
-              className="rounded-full border-2 border-[#0F2537] bg-white px-4 py-1.5 text-sm font-bold text-[#0F2537] shadow-[3px_3px_0_#0F2537] transition-transform hover:-translate-x-px hover:-translate-y-px"
-            >
-              Log in
-            </button>
-          </SignInButton>
-          <SignUpButton mode="modal">
-            <button
-              type="button"
-              className="rounded-full border-2 border-[#0F2537] bg-[#E2C364] px-4 py-1.5 text-sm font-bold text-[#0F2537] shadow-[3px_3px_0_#0F2537] transition-transform hover:-translate-x-px hover:-translate-y-px"
-            >
-              Sign up
-            </button>
-          </SignUpButton>
+          <Link
+            href="/sign-in"
+            className="rounded-full border-2 border-[#0F2537] bg-white px-4 py-1.5 text-sm font-bold text-[#0F2537] shadow-[3px_3px_0_#0F2537] transition-transform hover:-translate-x-px hover:-translate-y-px"
+          >
+            Log in
+          </Link>
+          <Link
+            href="/sign-up"
+            className="rounded-full border-2 border-[#0F2537] bg-[#E2C364] px-4 py-1.5 text-sm font-bold text-[#0F2537] shadow-[3px_3px_0_#0F2537] transition-transform hover:-translate-x-px hover:-translate-y-px"
+          >
+            Sign up
+          </Link>
         </Show>
 
         <Show when="signed-in">
