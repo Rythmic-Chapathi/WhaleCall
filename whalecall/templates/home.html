@@ -2,7 +2,10 @@
 {% block title %}WhaleCall -- plan a ride{% endblock %}
 {% block content %}
 <section id="plan-section">
-  <h1>Where to, {{ user.name }}?</h1>
+  <h1 style="display:flex; align-items:center; gap:10px;">
+    <span aria-hidden="true" style="background:var(--gold); border:2px solid var(--navy); border-radius:50%; padding:6px 9px; font-size:1.2rem;">🗺️</span>
+    Where to, {{ user.name }}?
+  </h1>
 
   <div class="grid-2">
     <div>
@@ -19,6 +22,7 @@
         <label for="dest-search" class="sr-only">Search destination island</label>
         <input id="dest-search" type="text" placeholder="Search a destination island, e.g. Driftmarket Isle" autocomplete="off">
         <div class="search-results" id="dest-results" hidden></div>
+        <span aria-hidden="true" style="position:absolute; right:18px; top:13px; color:var(--outline); font-size:1.1rem;">🔍</span>
       </div>
 
       <div class="map-wrap">
@@ -104,7 +108,7 @@
           <div class="meta">Capacity ${r.boat.capacity} &middot; <span class="vouch">vouched by ${r.boat.vouch_count} neighbors</span></div>
           <div class="meta">ETA ${r.eta_minutes} min</div>
         </div>
-        <button class="btn btn-primary book-btn">Book</button>
+        <button class="btn btn-primary book-btn">Book<span aria-hidden="true">&rarr;</span></button>
       `;
       card.querySelector(".book-btn").addEventListener("click", () => bookRide(r.boat.id, destination));
       boatsList.appendChild(card);

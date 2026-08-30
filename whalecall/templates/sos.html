@@ -54,7 +54,10 @@
       </div>
       <div class="step-nav">
         <button type="button" class="btn btn-secondary prev-step" data-prev="3">Back</button>
-        <button type="submit" class="btn btn-primary" id="sos-submit">Send SOS</button>
+        <button type="submit" class="btn btn-sos" id="sos-submit">
+          <span aria-hidden="true">🚨</span>
+          Send SOS
+        </button>
       </div>
       <p class="form-note" id="sos-error" role="alert"></p>
     </div>
@@ -65,7 +68,7 @@
   <div class="whale-icon" aria-hidden="true">🐋</div>
   <h1>Your call has been heard.</h1>
   <p id="confirmation-message">A Pod Guide is on the way.</p>
-  <p id="eta-text" style="font-size:1.4rem; font-weight:800; color:var(--ocean-deep);"></p>
+  <p id="eta-text" style="font-size:1.4rem; font-weight:800; color:var(--navy);"></p>
   <div class="map-wrap" style="max-width:520px; margin: 10px auto 20px;">
     <svg id="tracking-map" aria-label="Live map of your Pod Guide"></svg>
   </div>

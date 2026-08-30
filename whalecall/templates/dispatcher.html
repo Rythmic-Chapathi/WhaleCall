@@ -1,7 +1,10 @@
 {% extends "_layout.html" %}
 {% block title %}Dispatcher -- WhaleCall{% endblock %}
 {% block content %}
-<h1>Dispatcher sonar</h1>
+<h1 style="display:flex; align-items:center; gap:10px;">
+  <span aria-hidden="true" style="background:var(--gold); border:2px solid var(--navy); border-radius:50%; padding:6px 9px; font-size:1.2rem;">📡</span>
+  Dispatcher Sonar
+</h1>
 <p>Every active call, live. Ring size and brightness track priority; calls drift toward the center and brighten
 the longer they wait unanswered -- that's the fairness "amplification" built into the scoring, not a visual trick.</p>
 

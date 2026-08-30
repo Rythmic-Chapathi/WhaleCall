@@ -1,7 +1,10 @@
 {% extends "_layout.html" %}
 {% block title %}My rides -- WhaleCall{% endblock %}
 {% block content %}
-<h1>My rides</h1>
+<h1 style="display:flex; align-items:center; gap:10px;">
+  <span aria-hidden="true" style="background:var(--gold); border:2px solid var(--navy); border-radius:50%; padding:6px 9px; font-size:1.2rem;">🕓</span>
+  My Rides
+</h1>
 {% if not rides %}
   <div class="card"><p>No rides yet. <a href="/home">Book your first WhaleCall.</a></p></div>
 {% else %}
@@ -12,8 +15,8 @@
       <span class="tag tag-completed" style="margin-left:6px;">{{ ride.status }}</span>
       <div style="margin-top:8px;"><strong>{{ islands_by_id[ride.origin_island_id].name }} &rarr; {{ islands_by_id[ride.destination_island_id].name }}</strong></div>
       <div class="meta">
-        {% if ride.boat_id and ride.boat_id in boats_by_id %}Captain {{ boats_by_id[ride.boat_id].captain_name }} &middot; {% endif %}
-        {{ ride.created_at }}
+        {% if ride.boat_id and ride.boat_id in boats_by_id %}{{ boats_by_id[ride.boat_id].captain_name }} &middot; {% endif %}
+        {{ ride.display_time }}
       </div>
     </div>
   </div>

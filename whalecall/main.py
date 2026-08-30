@@ -64,7 +64,13 @@ def require_user(wc_session: Optional[str] = Cookie(default=None)) -> User:
 @app.get("/")
 def landing(request: Request, wc_session: Optional[str] = Cookie(default=None)):
     user = data.get_user_from_session(wc_session)
-    return templates.TemplateResponse(request, "landing.html", {"user": user})
+    available = sum(1 for b in data.BOATS if b.available)
+    fleet_stats = {
+        "total": len(data.BOATS),
+        "available": available,
+        "in_transit": len(data.BOATS) - available,
+    }
+    return templates.TemplateResponse(request, "landing.html", {"user": user, "fleet_stats": fleet_stats})
 
 
 @app.get("/sos")
@@ -97,10 +103,17 @@ def rides_page(request: Request, wc_session: Optional[str] = Cookie(default=None
         return RedirectResponse(url="/")
     my_rides = [r for r in data.RIDE_REQUESTS.values() if r.user_id == user.id]
     my_rides.sort(key=lambda r: r.created_at, reverse=True)
+    rides_view = []
+    for r in my_rides:
+        ride_dict = r.model_dump()
+        # %-d / %-I (no leading zero) are glibc-only and break on Windows,
+        # so stick to the portable strftime directives here.
+        ride_dict["display_time"] = datetime.fromisoformat(r.created_at).strftime("%b %d, %Y • %I:%M %p UTC")
+        rides_view.append(ride_dict)
     return templates.TemplateResponse(
         request,
         "rides.html",
-        {"user": user, "rides": my_rides, "islands_by_id": data.ISLANDS_BY_ID,
+        {"user": user, "rides": rides_view, "islands_by_id": data.ISLANDS_BY_ID,
          "boats_by_id": data.BOATS_BY_ID},
     )
 

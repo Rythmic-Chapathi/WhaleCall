@@ -1,9 +1,27 @@
 {% extends "_layout.html" %}
 {% block title %}WhaleCall -- your call always reaches the pod{% endblock %}
-{% block content %}
-<section class="landing-hero">
-  <h1 style="color:var(--white); font-size:2.2rem;">WhaleCall</h1>
-  <p class="tagline">Your call always reaches the pod.</p>
+
+{% block nav %}
+{% if user %}
+  <a class="nav-link" href="/home">Island Map</a>
+  <a class="nav-link" href="/rides">My Rides</a>
+  <a class="nav-link" href="/dispatcher">Dispatcher</a>
+  <span class="nav-greeting">Hi, {{ user.name }}</span>
+{% else %}
+  <a class="nav-link" href="/dispatcher">Dispatcher</a>
+  <button class="nav-link" id="show-login" type="button" style="background:none;border:none;cursor:pointer;">Log in</button>
+  <button class="nav-link" id="show-signup" type="button" style="background:none;border:none;cursor:pointer;">Sign up</button>
+{% endif %}
+{% endblock %}
+
+{% block hero %}
+<section class="hero-sky">
+  <div class="cloud" style="top:70px; left:6%; width:120px; height:44px;"></div>
+  <div class="cloud" style="top:140px; right:8%; width:170px; height:56px;"></div>
+  <div class="cloud" style="top:220px; left:24%; width:90px; height:32px;"></div>
+
+  <h1>Priority Calls.<br>No Islander Left Behind.</h1>
+  <p class="tagline">Your call always reaches the pod. Emergency maritime dispatch and everyday island transport, on one clear, fast, fully-explainable system.</p>
 
   <a href="/sos" class="sos-button" aria-label="Send an SOS -- no login needed">
     <span class="sound-rings" aria-hidden="true"><span></span><span></span><span></span></span>
@@ -13,12 +31,15 @@
 
   {% if user %}
     <div class="auth-row">
-      <a class="btn btn-primary" href="/home">Go to the map, {{ user.name }}</a>
+      <a class="btn btn-primary" href="/home">
+        <span aria-hidden="true">🗺️</span>
+        Go to the map, {{ user.name }}
+      </a>
     </div>
   {% else %}
     <div class="auth-row">
-      <button class="btn btn-secondary" id="show-login">Log in</button>
-      <button class="btn btn-secondary" id="show-signup">Sign up</button>
+      <button class="btn btn-secondary" id="show-login-hero" type="button">Log in</button>
+      <button class="btn btn-primary" id="show-signup-hero" type="button">Sign up</button>
     </div>
 
     <div class="card auth-panel" id="login-panel" hidden>
@@ -62,6 +83,61 @@
       </form>
     </div>
   {% endif %}
+
+  <div class="wave-separator">
+    <svg viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true">
+      <path fill="#F4C28F" d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z"/>
+    </svg>
+  </div>
+</section>
+
+<section class="hero-sand">
+  <div class="card-grid">
+    <article class="playful-card">
+      <div class="accent-bar sos"></div>
+      <span class="card-badge sos">
+        <span aria-hidden="true">🚨</span>
+        Emergency
+      </span>
+      <h3>Send an SOS</h3>
+      <p class="card-body">Tap-only intake, no login. Priority scored instantly and routed straight to a Pod Guide headed for Sanctuary Point.</p>
+      <a class="btn btn-sos" href="/sos">
+        Send SOS
+        <span aria-hidden="true">&rarr;</span>
+      </a>
+    </article>
+
+    <article class="playful-card">
+      <div class="accent-bar standard"></div>
+      <span class="card-badge standard">
+        <span aria-hidden="true">🚤</span>
+        Standard Transfer
+      </span>
+      <h3>Book a Ride</h3>
+      <p class="card-body">Pick a destination island, see nearby Pod Guides with ETA and neighbor vouches, and book in a couple of taps.</p>
+      {% if user %}
+        <a class="btn btn-primary" href="/home">Plan a Trip <span aria-hidden="true">&rarr;</span></a>
+      {% else %}
+        <button class="btn btn-primary" id="show-signup-card" type="button">Sign Up to Book</button>
+      {% endif %}
+    </article>
+
+    <article class="playful-card" style="background:#f6f3ee; border-style:dashed;">
+      <div class="flex" style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+        <span aria-hidden="true" style="background:var(--gold); border:2px solid var(--navy); border-radius:50%; padding:6px 9px; font-size:1.1rem;">📡</span>
+        <h3 style="margin:0;">Fleet Status</h3>
+      </div>
+      <ul class="fleet-stat-list">
+        <li><span>Total Pod Guides</span><span class="num">{{ fleet_stats.total }}</span></li>
+        <li><span>Available Now</span><span class="num">{{ fleet_stats.available }}</span></li>
+        <li><span>Currently In Transit</span><span class="num">{{ fleet_stats.in_transit }}</span></li>
+      </ul>
+    </article>
+  </div>
+</section>
+
+<section class="hero-water" aria-hidden="true">
+  <canvas id="water-shader"></canvas>
 </section>
 {% endblock %}
 
@@ -69,15 +145,23 @@
 <script>
   const showLogin = document.getElementById("show-login");
   const showSignup = document.getElementById("show-signup");
+  const showLoginHero = document.getElementById("show-login-hero");
+  const showSignupHero = document.getElementById("show-signup-hero");
+  const showSignupCard = document.getElementById("show-signup-card");
   const loginPanel = document.getElementById("login-panel");
   const signupPanel = document.getElementById("signup-panel");
 
-  if (showLogin) showLogin.addEventListener("click", () => {
+  function openLogin() {
+    if (!loginPanel) return;
     loginPanel.hidden = false; signupPanel.hidden = true; loginPanel.scrollIntoView({ behavior: "smooth" });
-  });
-  if (showSignup) showSignup.addEventListener("click", () => {
+  }
+  function openSignup() {
+    if (!signupPanel) return;
     signupPanel.hidden = false; loginPanel.hidden = true; signupPanel.scrollIntoView({ behavior: "smooth" });
-  });
+  }
+
+  [showLogin, showLoginHero].forEach((el) => el && el.addEventListener("click", openLogin));
+  [showSignup, showSignupHero, showSignupCard].forEach((el) => el && el.addEventListener("click", openSignup));
 
   const loginForm = document.getElementById("login-form");
   if (loginForm) loginForm.addEventListener("submit", async (e) => {
@@ -111,5 +195,77 @@
       errorEl.textContent = err.message;
     }
   });
+
+  /* Ambient animated water band -- purely decorative, fails silently
+   * with no WebGL rather than breaking the page. */
+  (function () {
+    const canvas = document.getElementById("water-shader");
+    if (!canvas) return;
+    function syncSize() {
+      const w = canvas.clientWidth || 1280;
+      const h = canvas.clientHeight || 220;
+      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+    }
+    if (typeof ResizeObserver !== "undefined") new ResizeObserver(syncSize).observe(canvas);
+    syncSize();
+
+    const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+    if (!gl) return;
+
+    const vs = `attribute vec2 a_position; varying vec2 v_uv;
+      void main() { v_uv = a_position * 0.5 + 0.5; gl_Position = vec4(a_position, 0.0, 1.0); }`;
+    const fs = `precision highp float;
+      uniform float u_time; varying vec2 v_uv;
+      vec3 permute(vec3 x){return mod(((x*34.0)+1.0)*x,289.0);}
+      float snoise(vec2 v){
+        const vec4 C=vec4(0.211324865405187,0.366025403784439,-0.577350269189626,0.024390243902439);
+        vec2 i=floor(v+dot(v,C.yy)); vec2 x0=v-i+dot(i,C.xx);
+        vec2 i1=(x0.x>x0.y)?vec2(1.0,0.0):vec2(0.0,1.0);
+        vec4 x12=x0.xyxy+C.xxzz; x12.xy-=i1; i=mod(i,289.0);
+        vec3 p=permute(permute(i.y+vec3(0.0,i1.y,1.0))+i.x+vec3(0.0,i1.x,1.0));
+        vec3 m=max(0.5-vec3(dot(x0,x0),dot(x12.xy,x12.xy),dot(x12.zw,x12.zw)),0.0);
+        m=m*m; m=m*m;
+        vec3 x=2.0*fract(p*C.www)-1.0; vec3 h=abs(x)-0.5; vec3 a0=x-floor(x+0.5);
+        float m1=1.79284291400159-0.85373472095314*(a0.x*a0.x+h.x*h.x);
+        float m2=1.79284291400159-0.85373472095314*(a0.y*a0.y+h.y*h.y);
+        float m3=1.79284291400159-0.85373472095314*(a0.z*a0.z+h.z*h.z);
+        vec3 g; g.x=a0.x*x0.x+h.x*x0.y; g.yz=a0.yz*x12.xz+h.yz*x12.yw;
+        return 130.0*dot(m*vec3(m1,m2,m3),g);
+      }
+      void main() {
+        vec2 uv = v_uv;
+        vec3 shallow = vec3(0.11, 0.55, 0.60);
+        vec3 deep = vec3(0.059, 0.145, 0.216);
+        vec3 white = vec3(1.0);
+        float noise = snoise(uv * 4.0 + u_time * 0.1);
+        float wave = sin(uv.y * 12.0 + u_time * 1.5 + noise) * 0.05;
+        vec3 color = mix(shallow, deep, uv.y + wave);
+        float ripple = smoothstep(0.45, 0.5, sin(uv.y * 40.0 + u_time * 2.0 + noise * 2.0));
+        color = mix(color, white, ripple * 0.12 * (1.0 - uv.y));
+        gl_FragColor = vec4(color, 1.0);
+      }`;
+    function compile(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; }
+    const prog = gl.createProgram();
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, vs));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(prog);
+    gl.useProgram(prog);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const posLoc = gl.getAttribLocation(prog, "a_position");
+    gl.enableVertexAttribArray(posLoc);
+    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+    const uTime = gl.getUniformLocation(prog, "u_time");
+
+    function render(t) {
+      if (typeof ResizeObserver === "undefined") syncSize();
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      if (uTime) gl.uniform1f(uTime, t * 0.001);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      requestAnimationFrame(render);
+    }
+    requestAnimationFrame(render);
+  })();
 </script>
 {% endblock %}

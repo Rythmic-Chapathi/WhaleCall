@@ -5,44 +5,57 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}WhaleCall{% endblock %}</title>
   <link rel="icon" href="/static/whalecall_logo.svg">
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
   {% block extra_head %}{% endblock %}
 </head>
 <body>
-  <div class="ocean-bg" aria-hidden="true">
-    <svg class="wave1" viewBox="0 0 1440 200" preserveAspectRatio="none">
-      <path fill="#F5E6C8" d="M0,100 C 240,150 480,50 720,100 C 960,150 1200,50 1440,100 L1440,200 L0,200 Z"/>
-    </svg>
-    <svg class="wave2" viewBox="0 0 1440 200" preserveAspectRatio="none">
-      <path fill="#F5E6C8" d="M0,120 C 240,70 480,170 720,120 C 960,70 1200,170 1440,120 L1440,200 L0,200 Z"/>
-    </svg>
-  </div>
+  <header class="navbar-pill">
+    <a class="brand" href="/">
+      <img src="/static/whalecall_logo.svg" alt="" width="34" height="34">
+      <span>WhaleCall</span>
+    </a>
+    <nav class="topbar-links" aria-label="Main">
+      {% block nav %}
+      {% if user %}
+        <a class="nav-link" href="/home">Island Map</a>
+        <a class="nav-link" href="/rides">My Rides</a>
+        <a class="nav-link" href="/dispatcher">Dispatcher</a>
+        <span class="nav-greeting">Hi, {{ user.name }}</span>
+      {% else %}
+        <a class="nav-link" href="/dispatcher">Dispatcher</a>
+      {% endif %}
+      <a class="nav-sos-btn" href="/sos" aria-label="Send an SOS -- no login needed">
+        <span aria-hidden="true">🚨</span>SOS
+      </a>
+      {% endblock %}
+    </nav>
+  </header>
+
+  {% block hero %}{% endblock %}
 
   <div class="page">
-    <header class="topbar">
-      <a class="brand" href="/">
-        <img src="/static/whalecall_logo.svg" alt="" width="42" height="42">
-        <span>WhaleCall</span>
-      </a>
-      <nav class="topbar-links" aria-label="Main">
-        {% block nav %}
-        {% if user %}
-          <a class="btn btn-secondary" href="/home">Map</a>
-          <a class="btn btn-secondary" href="/rides">My rides</a>
-          <a class="btn btn-secondary" href="/dispatcher">Dispatcher</a>
-          <span class="tag tag-standard" style="align-self:center;">Hi, {{ user.name }}</span>
-        {% else %}
-          <a class="btn btn-secondary" href="/dispatcher">Dispatcher</a>
-        {% endif %}
-        {% endblock %}
-      </nav>
-    </header>
-
     {% block content %}{% endblock %}
-
-    <p class="footer-note">WhaleCall &middot; a fictional archipelago, a real priority algorithm &middot; every score is auditable, no black box.</p>
   </div>
+
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <div>
+        <div class="brand-line">
+          <span aria-hidden="true">⚓</span> WhaleCall
+        </div>
+        <p>A fictional archipelago, a real priority algorithm. Every score is auditable -- no black box.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="/sos">Emergency SOS</a>
+        <a href="/home">Plan a Ride</a>
+        <a href="/dispatcher">Dispatcher</a>
+        <a href="/rides">My Rides</a>
+      </nav>
+    </div>
+  </footer>
 
   <script src="/static/app.js"></script>
   {% block extra_scripts %}{% endblock %}
