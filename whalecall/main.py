@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import Cookie, FastAPI, HTTPException, Request, Response, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -36,6 +37,20 @@ from priority import Call, score_breakdown, sorted_queue
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 app = FastAPI(title="WhaleCall")
+
+# The Next.js frontend (web/) runs on a different origin in dev
+# (localhost:3000 vs this API's 8000) and will too in most production
+# setups, so it needs CORS. Configurable via env for whatever origin the
+# frontend actually deploys to; defaults cover local dev.
+_cors_origins = os.environ.get("WHALECALL_CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[o.strip() for o in _cors_origins if o.strip()],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
