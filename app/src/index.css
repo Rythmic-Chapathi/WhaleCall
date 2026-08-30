@@ -1,0 +1,75 @@
+/* Inter, self-hosted. A demo must not depend on a font CDN being reachable. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/inter-var.woff2") format("woff2");
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 215 30% 12%;
+    --muted: 210 20% 97%;
+    --muted-foreground: 215 12% 42%;
+    --border: 214 20% 90%;
+    --card: 0 0% 100%;
+    --primary: 196 82% 32%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 187 85% 55%;
+    --danger: 0 72% 45%;
+  }
+
+  /* The emergency surface keeps its dark, red treatment. */
+  .response-mode {
+    --background: 215 42% 9%;
+    --foreground: 0 0% 100%;
+    --muted: 215 32% 15%;
+    --muted-foreground: 214 18% 72%;
+    --border: 215 25% 22%;
+    --card: 215 38% 13%;
+    --primary: 0 72% 51%;
+    --primary-foreground: 0 0% 100%;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+
+  /* A visible focus ring on everything reachable by keyboard. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-offset-2;
+    --tw-ring-color: hsl(var(--primary));
+    --tw-ring-offset-color: hsl(var(--background));
+  }
+
+  .response-mode :focus-visible {
+    --tw-ring-color: #fca5a5;
+  }
+}
+
+@layer utilities {
+  /* Minimum comfortable touch target. */
+  .tap {
+    @apply min-h-[44px] min-w-[44px];
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
