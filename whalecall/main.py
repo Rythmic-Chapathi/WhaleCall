@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -29,9 +30,14 @@ from models import (
 )
 from priority import Call, score_breakdown, sorted_queue
 
+# Resolve static/templates by this file's own location, not the process's
+# cwd -- keeps the app runnable both as `cd whalecall && uvicorn main:app`
+# and when imported from elsewhere (e.g. a serverless entrypoint).
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 app = FastAPI(title="WhaleCall")
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 SESSION_COOKIE = "wc_session"
 
